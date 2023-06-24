@@ -124,6 +124,7 @@ export default function Home() {
           </div>
           <ReactTooltip
             id="tooltip"
+            className={styles?.descTooltip}
           />
           {isLoading && <p>Loading ....</p>}
           {photos?.length <=0 && !isLoading && <p className={styles.notFound}>No Photo Found</p>}
