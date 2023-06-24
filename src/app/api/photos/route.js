@@ -14,8 +14,9 @@ export async function GET(request) {
       } else {
         const results = result?.response?.results;
         photos = results?.map(el =>({
+          id: el?.id,
           author: el?.user?.username,
-          title: el?.description,
+          description: el?.description,
           url: el?.urls?.raw,
           thumb: el?.urls?.thumb,
           width: el?.width,
@@ -33,10 +34,11 @@ export async function GET(request) {
       } else {
         const results = result?.response?.results;
         photos = results?.map(el =>({
+          id: el?.id,
           author: el?.user?.username,
-          title: el?.description,
+          description: el?.description,
           url: el?.urls?.raw,
-          thumb: el?.urls?.thumb,
+          thumb: `${el?.urls?.raw}&w=300&fit=max`,
           width: el?.width,
           height: el?.height,
         }));

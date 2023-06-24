@@ -5,6 +5,7 @@ import styles from './page.module.css'
 import Modal from '@/components/Modal'
 import axios from 'axios';
 import debounce from 'lodash.debounce';
+import { Tooltip as ReactTooltip } from "react-tooltip";
 
 export default function Home() {
   const [currPhoto, setCurrPhoto] = useState(null);
@@ -12,6 +13,7 @@ export default function Home() {
   const [page, setPage] = useState(1);
   const [photos, setPhotos]= useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLastPage, setIsLastPage] = useState(false);
 
   useEffect(()=>{  
     const fetchData = async() =>{
@@ -19,6 +21,9 @@ export default function Home() {
         const res = await axios.get(`/api/photos?&page=${page}`);
         const photos = [...res?.data?.photos];
         setPhotos(photos);
+        if(photos?.length <= 0){
+          setIsLastPage(true);
+        }
       } catch(error){
         console.error('Error fetching search results:', error);
       }finally{
@@ -26,6 +31,7 @@ export default function Home() {
       }
     }
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
   useEffect(() => {
@@ -33,6 +39,9 @@ export default function Home() {
       const res = await axios.get(`/api/photos?search=${searchTerm}&page=${page}`);
       const photos = [...res?.data?.photos];
       setPhotos(photos);
+      if(photos?.length < 9){
+        setIsLastPage(true);
+      }
     }
     const fetchSearchResults = debounce(async () => {
       try {
@@ -43,7 +52,7 @@ export default function Home() {
         setIsLoading(false);
       }
     }, 500);
-
+    setIsLastPage(false);
     setIsLoading(true);
     setPhotos([]);
     fetchSearchResults();
@@ -51,6 +60,7 @@ export default function Home() {
     return () => {
       fetchSearchResults.cancel();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm]);
 
   const fetchMore = async() =>{
@@ -61,6 +71,15 @@ export default function Home() {
     setPage(prev => prev + 1);
     setPhotos(prev => [...prev, ...photos]);
     setIsLoading(false);
+  }
+
+  const handleSelectPhoto = (photo) =>{
+    setCurrPhoto({
+      photo: photo?.url, 
+      author: photo?.author,
+      width: photo?.width,
+      height: photo?.height,
+    });
   }
 
   return (
@@ -81,13 +100,14 @@ export default function Home() {
           />
           <div className={styles.grid}>
             {
-              photos?.map((el, idx) => (
-                <a className={styles.card} onClick={()=>setCurrPhoto({
-                    photo: el?.url, 
-                    author: el?.author,
-                    width: el?.width,
-                    height: el?.height,
-                  })} key={`image-${idx}`}>
+              photos?.map(el => (
+                <a className={styles.card} onClick={()=>handleSelectPhoto(el)} 
+                  key={el?.id}
+                  id={`image-${el?.id}`}
+                  data-tooltip-id="tooltip"
+                  data-tooltip-content={el?.description}
+                  data-tooltip-place="bottom"
+                >
                   <Image
                     src={el?.thumb}
                     alt='gallery-photo'
@@ -96,15 +116,18 @@ export default function Home() {
                     className={styles.image}
                   />
                   <div className={styles.details}>
-                    <p className={styles.title}>Bebas</p>
                     <p className={styles.author}>by {el?.author}</p>
                   </div>
                 </a>
               ))
             }
           </div>
+          <ReactTooltip
+            id="tooltip"
+          />
           {isLoading && <p>Loading ....</p>}
-          <button className={styles.load} onClick={fetchMore}>Load more</button>
+          {photos?.length <=0 && !isLoading && <p className={styles.notFound}>No Photo Found</p>}
+          {!isLastPage && <button className={styles.load} onClick={fetchMore}>Load more</button>}
         </div>
       </section>
       <Modal visible={!!currPhoto}>
@@ -119,7 +142,6 @@ export default function Home() {
           className={styles.imageView}
         />
         <div className={styles.imageDesc}>
-          <p>Bebas</p>
           <p className={styles.author}>by {currPhoto?.author}.</p>
         </div>
       </Modal>

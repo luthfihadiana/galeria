@@ -59,7 +59,7 @@
 
 .card .details {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
 }
 
@@ -147,7 +147,7 @@
   border-end-start-radius: 0.8rem;
   border-end-end-radius: 0.8rem;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
 }
 
 .imageClose {
@@ -161,6 +161,12 @@
 
 .imageDesc .author {
   text-decoration: underline;
+}
+
+.notFound {
+  font-size: 24px;
+  font-weight: bold;
+  font-family: var(--font-mono);
 }
 
 /* Enable hover only on non-touch devices */
