@@ -1,95 +1,128 @@
+"use client";
+import {useState, useEffect } from 'react';
 import Image from 'next/image'
 import styles from './page.module.css'
+import Modal from '@/components/Modal'
+import axios from 'axios';
+import debounce from 'lodash.debounce';
 
 export default function Home() {
+  const [currPhoto, setCurrPhoto] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const [photos, setPhotos]= useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(()=>{  
+    const fetchData = async() =>{
+      try{
+        const res = await axios.get(`/api/photos?&page=${page}`);
+        const photos = [...res?.data?.photos];
+        setPhotos(photos);
+      } catch(error){
+        console.error('Error fetching search results:', error);
+      }finally{
+        setIsLoading(false);
+      }
+    }
+    fetchData();
+  },[]);
+
+  useEffect(() => {
+    const fetchData = async() =>{
+      const res = await axios.get(`/api/photos?search=${searchTerm}&page=${page}`);
+      const photos = [...res?.data?.photos];
+      setPhotos(photos);
+    }
+    const fetchSearchResults = debounce(async () => {
+      try {
+        fetchData();
+      } catch (error) {
+        console.error('Error fetching search results:', error);
+      }finally{
+        setIsLoading(false);
+      }
+    }, 500);
+
+    setIsLoading(true);
+    setPhotos([]);
+    fetchSearchResults();
+
+    return () => {
+      fetchSearchResults.cancel();
+    };
+  }, [searchTerm]);
+
+  const fetchMore = async() =>{
+    setIsLoading(true);
+    const newPage = page + 1;
+    const res = await axios.get(`/api/photos?&page=${newPage}`);
+    const photos = [...res?.data?.photos];
+    setPage(prev => prev + 1);
+    setPhotos(prev => [...prev, ...photos]);
+    setIsLoading(false);
+  }
+
   return (
     <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.js</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+      <header className={styles.header}>
+        <h1>Galeria.</h1>
+      </header>
+      <section className={styles.container}>
+        <div className={styles.content}>
+          <input 
+            type="text" 
+            className={styles.inputSearch}
+            onChange={(e)=>{
+              setSearchTerm(e.target.value);
+            }}
+            placeholder='Search photo'
+            value={searchTerm}
+          />
+          <div className={styles.grid}>
+            {
+              photos?.map((el, idx) => (
+                <a className={styles.card} onClick={()=>setCurrPhoto({
+                    photo: el?.url, 
+                    author: el?.author,
+                    width: el?.width,
+                    height: el?.height,
+                  })} key={`image-${idx}`}>
+                  <Image
+                    src={el?.thumb}
+                    alt='gallery-photo'
+                    width={100}
+                    height={100}
+                    className={styles.image}
+                  />
+                  <div className={styles.details}>
+                    <p className={styles.title}>Bebas</p>
+                    <p className={styles.author}>by {el?.author}</p>
+                  </div>
+                </a>
+              ))
+            }
+          </div>
+          {isLoading && <p>Loading ....</p>}
+          <button className={styles.load} onClick={fetchMore}>Load more</button>
         </div>
-      </div>
-
-      <div className={styles.center}>
+      </section>
+      <Modal visible={!!currPhoto}>
+        <div className={styles.imageClose} onClick={()=>setCurrPhoto(null)}>
+          X
+        </div>
         <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
+          src={currPhoto?.photo ? `${currPhoto?.photo}&w=${300}&h=${300}` :''}
+          alt='gallery-photo'
+          width={300}
+          height={300}
+          className={styles.imageView}
         />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore the Next.js 13 playground.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+        <div className={styles.imageDesc}>
+          <p>Bebas</p>
+          <p className={styles.author}>by {currPhoto?.author}.</p>
+        </div>
+      </Modal>
     </main>
   )
 }
